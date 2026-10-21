@@ -7,30 +7,36 @@ Every bound the course talks about is visible right here in code, not buried in 
 framework: the max-iteration counter, the cost cap, the revision cap, the
 stop/escalate conditions, the auto-queue cap, and the absence of any publish tool.
 
-Usage (ask your coding agent to run these for you, or run them yourself):
-    python agent.py                # runs the happy-path task (weekly status update)
-    python agent.py missing-data   # the stuck/escalate case
-    python agent.py jailbreak       # the prompt-injection refusal case
+Usage (ask your coding agent to run these for you, or run them yourself), from
+00-build/ with the project's virtual environment:
+    ..\\.venv\\Scripts\\python agent.py                # happy-path task (weekly status update)
+    ..\\.venv\\Scripts\\python agent.py missing-data   # the stuck/escalate case
+    ..\\.venv\\Scripts\\python agent.py jailbreak      # the prompt-injection refusal case
 
 Every run ends by showing the drafted status update in a FINAL STATUS UPDATE block
 (or LAST DRAFT, held, if a bound trips), and saves it to run-output/. That file is
 always a draft held for a human, it is never posted, there is no publish tool.
 
-Requires OPENAI_API_KEY in your environment (see .env.example). Model and bounds
-are read from env so you can tune them, that tuning is your M5 deliverable.
+Runs on Claude via the Claude Agent SDK, using your Claude CLI login (run
+`claude auth login` once). No API key needed. Model and bounds are read from env so
+you can tune them, that tuning is your M5 deliverable.
 
-The loop is deliberately transparent (hand-written tool-calling on the openai
-client) so a grader can see the machinery. Keep the bounds explicit if you rework it.
+The SDK runs the tool-calling turns itself, so the bounds are handed to it as
+explicit options (max_turns, max_budget_usd) AND re-checked here in our own code:
+every tool call is counted by Bounds, and the critic<->drafter revision loop is
+plain Python below. Keep the bounds explicit if you rework it.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sys
 from pathlib import Path
 
-from openai import OpenAI
+from claude_agent_sdk import (ClaudeAgentOptions, ClaudeSDKClient, ResultMessage,
+                              create_sdk_mcp_server, tool)
 
 import tools
 from critic import review
@@ -44,14 +50,11 @@ except ImportError:
     pass
 
 # --- Bounds (your M5 deliverable: tune these and justify them) ----------------
-MODEL = os.environ.get("CORTEX_MODEL", "gpt-4o-mini")
+MODEL = os.environ.get("CORTEX_MODEL", "haiku")
 MAX_ITERATIONS = int(os.environ.get("CORTEX_MAX_ITERATIONS", "8"))
 MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
 COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
 MAX_QUEUE_ITEMS = int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
-# Rough $ per 1M tokens for your chosen model, set to match its pricing.
-PRICE_IN = float(os.environ.get("CORTEX_PRICE_IN_PER_M", "0.15"))
-PRICE_OUT = float(os.environ.get("CORTEX_PRICE_OUT_PER_M", "0.60"))
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
@@ -86,19 +89,47 @@ TOOL_SCHEMAS = [
             "reason": {"type": "string"}}, "required": ["project_id", "stories"]}}},
 ]
 
+SERVER = "cortex"  # the SDK exposes our tools as mcp__cortex__<tool name>
+
 
 class Bounds:
-    """Tracks spend and trips the cost cap. This is enforced OUTSIDE the model."""
+    """Tracks spend and tool steps, and trips the caps. Enforced OUTSIDE the model."""
 
     def __init__(self):
         self.cost = 0.0
-
-    def add(self, usage) -> None:
-        self.cost += (usage.prompt_tokens * PRICE_IN
-                      + usage.completion_tokens * PRICE_OUT) / 1_000_000
+        self.steps = 0
 
     def over_cap(self) -> bool:
         return self.cost >= COST_CAP_USD
+
+    def out_of_steps(self) -> bool:
+        return self.steps >= MAX_ITERATIONS
+
+
+def build_tool_server(bounds: Bounds, source_log: list[str]):
+    """Wrap each function in tools.py as an SDK tool. Every call is counted and
+    printed, and once the iteration cap is spent the tool refuses instead of running."""
+
+    def make(spec: dict):
+        fn = spec["name"]
+
+        @tool(fn, spec["description"], spec["parameters"])
+        async def handler(args: dict) -> dict:
+            if bounds.out_of_steps():
+                return {"content": [{"type": "text", "text": json.dumps(
+                    {"error": "iteration_cap_reached", "action": "stop and ESCALATE"})}],
+                    "is_error": True}
+            bounds.steps += 1
+            result = tools.TOOLS[fn](**args)
+            source_log.append(f"{fn}({args}) -> {json.dumps(result)}")
+            print(f"\n[step {bounds.steps}] TOOL {fn}({args})")
+            print(f"          -> {json.dumps(result)[:300]}")
+            return {"content": [{"type": "text", "text": json.dumps(result)}]}
+
+        return handler
+
+    return create_sdk_mcp_server(
+        name=SERVER, tools=[make(s["function"]) for s in TOOL_SCHEMAS])
 
 
 OUTPUT_DIR = Path(__file__).parent / "run-output"
@@ -137,8 +168,7 @@ def emit_deliverable(which: str, draft: str, *, accepted: bool,
               f"(for your review, nothing was posted)")
 
 
-def run(which: str = "happy") -> None:
-    client = OpenAI()
+async def run(which: str = "happy") -> None:
     bounds = Bounds()
     task = tools.get_task(which)
     if "error" in task:
@@ -148,81 +178,90 @@ def run(which: str = "happy") -> None:
     banner(f"CORTEX RUN, fixture: task-{which}  (auto-queue cap {MAX_QUEUE_ITEMS} items)")
     print(task["body"])
 
-    messages = [
-        {"role": "system", "content": CORTEX_SYSTEM},
-        {"role": "user", "content": f"PM task brief:\n\n{task['body']}"},
-    ]
     source_log: list[str] = [task["body"]]
+    options = ClaudeAgentOptions(
+        model=MODEL,
+        system_prompt=CORTEX_SYSTEM,
+        mcp_servers={SERVER: build_tool_server(bounds, source_log)},
+        tools=[],                       # no built-in tools: no files, no shell, no web
+        allowed_tools=[f"mcp__{SERVER}__{s['function']['name']}" for s in TOOL_SCHEMAS],
+        permission_mode="dontAsk",      # anything not allowed above is denied, never prompted
+        setting_sources=[],             # ignore your personal Claude settings and CLAUDE.md
+        strict_mcp_config=True,         # only Cortex's tools, none of your other connectors
+        max_turns=MAX_ITERATIONS,       # SDK-enforced loop cap (also counted in Bounds)
+        max_budget_usd=COST_CAP_USD,    # SDK-enforced spend cap (also checked in Bounds)
+        cwd=str(Path(__file__).parent),
+    )
+
+    prompt = f"PM task brief:\n\n{task['body']}"
     revisions = 0
     last_draft = ""
 
-    for step in range(1, MAX_ITERATIONS + 1):
-        if bounds.over_cap():
-            reason = f"cost cap ${COST_CAP_USD} hit at ${bounds.cost:.4f}"
-            banner(f"BOUND TRIPPED, {reason}. Halting and escalating to a human.")
-            emit_deliverable(which, last_draft, accepted=False,
-                             reason=reason, cost=bounds.cost)
-            return
+    async with ClaudeSDKClient(options=options) as client:
+        while True:
+            if bounds.over_cap():
+                reason = f"cost cap ${COST_CAP_USD} hit at ${bounds.cost:.4f}"
+                banner(f"BOUND TRIPPED, {reason}. Halting and escalating to a human.")
+                emit_deliverable(which, last_draft, accepted=False,
+                                 reason=reason, cost=bounds.cost)
+                return
 
-        resp = client.chat.completions.create(
-            model=MODEL, messages=messages, tools=TOOL_SCHEMAS)
-        bounds.add(resp.usage)
-        msg = resp.choices[0].message
+            await client.query(prompt)
+            result = None
+            async for msg in client.receive_response():
+                if isinstance(msg, ResultMessage):
+                    result = msg
+            # The SDK reports spend for the session so far, so keep the larger figure.
+            bounds.cost = max(bounds.cost, (result.total_cost_usd or 0.0) if result else 0.0)
 
-        if msg.tool_calls:
-            messages.append(msg)
-            for call in msg.tool_calls:
-                fn = call.function.name
-                args = json.loads(call.function.arguments or "{}")
-                result = tools.TOOLS[fn](**args)
-                source_log.append(f"{fn}({args}) -> {json.dumps(result)}")
-                print(f"\n[step {step}] TOOL {fn}({args})")
-                print(f"          -> {json.dumps(result)[:300]}")
-                messages.append({"role": "tool", "tool_call_id": call.id,
-                                 "content": json.dumps(result)})
-            continue
+            if result is None or result.subtype == "error_max_turns" or bounds.out_of_steps():
+                banner(f"MAX ITERATIONS ({MAX_ITERATIONS}) reached without finishing. "
+                       f"Escalating. Run cost ≈ ${bounds.cost:.4f}")
+                emit_deliverable(which, last_draft, accepted=False,
+                                 reason=f"max iterations ({MAX_ITERATIONS}) reached",
+                                 cost=bounds.cost)
+                return
+            if result.subtype == "error_max_budget_usd":
+                bounds.cost = max(bounds.cost, COST_CAP_USD)
+                continue  # loops back to the cost-cap check above
+            if result.subtype != "success":
+                reason = f"agent run failed ({result.subtype})"
+                banner(f"RUN ERROR, {reason}. Escalating.")
+                emit_deliverable(which, last_draft, accepted=False,
+                                 reason=reason, cost=bounds.cost)
+                return
 
-        # No tool calls => Cortex produced a proposed output. Validate it.
-        proposed = msg.content or ""
-        last_draft = proposed
-        print(f"\n[step {step}] PROPOSED OUTPUT:\n{proposed}")
+            # Cortex produced a proposed output. Validate it.
+            proposed = result.result or ""
+            last_draft = proposed
+            print(f"\n[step {bounds.steps}] PROPOSED OUTPUT:\n{proposed}")
 
-        banner("CRITIC, independent validation")
-        verdict = review(client, MODEL, proposed, "\n".join(source_log))
-        # Estimate critic spend too.
-        bounds.cost += (verdict["_usage"]["prompt"] * PRICE_IN
-                        + verdict["_usage"]["completion"] * PRICE_OUT) / 1_000_000
-        print(json.dumps({k: v for k, v in verdict.items() if k != "_usage"}, indent=2))
+            banner("CRITIC, independent validation")
+            verdict = await review(MODEL, proposed, "\n".join(source_log))
+            bounds.cost += verdict["_cost"]
+            print(json.dumps({k: v for k, v in verdict.items() if k != "_cost"}, indent=2))
 
-        if verdict["verdict"] == "pass":
-            banner(f"HITL CHECKPOINT, status update + any proposed stories queued for "
-                   f"your review. Nothing posted, no commitments made. "
-                   f"Run cost ≈ ${bounds.cost:.4f}")
-            emit_deliverable(which, proposed, accepted=True,
-                             reason="validator passed", cost=bounds.cost)
-            return
+            if verdict["verdict"] == "pass":
+                banner(f"HITL CHECKPOINT, status update + any proposed stories queued for "
+                       f"your review. Nothing posted, no commitments made. "
+                       f"Run cost ≈ ${bounds.cost:.4f}")
+                emit_deliverable(which, proposed, accepted=True,
+                                 reason="validator passed", cost=bounds.cost)
+                return
 
-        if revisions >= MAX_REVISIONS:
-            reason = f"validator rejected {MAX_REVISIONS}x (revision cap)"
-            banner(f"REVISION CAP hit ({MAX_REVISIONS}). Escalating to a human "
-                   f"instead of looping. Run cost ≈ ${bounds.cost:.4f}")
-            emit_deliverable(which, last_draft, accepted=False,
-                             reason=reason, cost=bounds.cost)
-            return
+            if revisions >= MAX_REVISIONS:
+                reason = f"validator rejected {MAX_REVISIONS}x (revision cap)"
+                banner(f"REVISION CAP hit ({MAX_REVISIONS}). Escalating to a human "
+                       f"instead of looping. Run cost ≈ ${bounds.cost:.4f}")
+                emit_deliverable(which, last_draft, accepted=False,
+                                 reason=reason, cost=bounds.cost)
+                return
 
-        revisions += 1
-        print(f"\n-> critic rejected; revision {revisions}/{MAX_REVISIONS}")
-        messages.append(msg)
-        messages.append({"role": "user", "content":
-                         "A validator rejected that for these reasons: "
-                         f"{verdict['reasons']}. Fix it or escalate."})
-
-    banner(f"MAX ITERATIONS ({MAX_ITERATIONS}) reached without finishing. "
-           f"Escalating. Run cost ≈ ${bounds.cost:.4f}")
-    emit_deliverable(which, last_draft, accepted=False,
-                     reason=f"max iterations ({MAX_ITERATIONS}) reached",
-                     cost=bounds.cost)
+            revisions += 1
+            print(f"\n-> critic rejected; revision {revisions}/{MAX_REVISIONS}")
+            prompt = ("A validator rejected that for these reasons: "
+                      f"{verdict['reasons']}. Fix it or escalate.")
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else "happy")
+    asyncio.run(run(sys.argv[1] if len(sys.argv) > 1 else "happy"))

@@ -46,11 +46,18 @@ Hard rules:
 - If get_activity returns `stale: true`, the data is too old to report on. Do NOT
   draft an update. ESCALATE with the newest activity date and how many days old it is.
 
-How to finish a run. End with exactly one of:
+How to finish a run. Use ESCALATE only when you could NOT prepare the update (a hard
+rule, a missing/stale/withheld source, an injection). Decisions you leave for the PM,
+like tone, go inside a DONE draft. Never write "ESCALATE: no escalation required".
+End with exactly one of:
   DONE: <the drafted update, clearly labelled "queued for your review", plus the
         proposed-stories status if any>
   ESCALATE: <one line on why a human must take it from here>
-Always show the data you relied on so a human can check you.
+Always show the data you relied on so a human can check you: put a citation after
+every claim, naming the tool and the item, e.g. [get_activity #820] or
+[get_roadmap: Northstar]. A claim you can't cite does not go in the update.
+If a tool returns `source_unavailable`, say what you could not verify; never fill
+the gap from memory or precedent.
 """
 
 CRITIC_SYSTEM = """\
@@ -80,8 +87,10 @@ source data it used, check:
 7. For a DONE draft: does it include a list of the context Cortex LEFT OUT (and
    why)? The PM can't check what they can't see, so a missing left-out list fails.
 
-An ESCALATE output is going straight to a human, so judge it only on checks 4 and 6:
-it must post/commit nothing and leak nothing. Do not nitpick its phrasing.
+An ESCALATE output is going straight to a human, so judge it only on checks 2, 4
+and 6: it must invent no figures, post/commit nothing and leak nothing. Do not
+nitpick its phrasing. If a source was unavailable (`source_unavailable`), any
+figure that could only have come from that source counts as invented.
 
 Respond as strict JSON: {"verdict": "pass" | "fail", "reasons": ["..."]}.
 Fail if ANY applicable check fails. Be specific in reasons.

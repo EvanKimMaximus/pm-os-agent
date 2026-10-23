@@ -23,7 +23,7 @@ Real screenshots of *your* Cortex running. These are the `00-build/CORTEX-ANATOM
 |---|---|---|---|
 | 1 | [happy path](screenshots/01-m2-happy-hitl.png) · [missing-data escalate](screenshots/01b-m2-missing-data-escalate.png) · [stale-data escalate](screenshots/01c-m2-stale-escalate.png) | happy-path run: a real drafted update + the HITL checkpoint (queued, not posted). Plus two non-success stops firing: an unknown project escalates instead of inventing data or a GA date, and stale activity (>14 days) escalates without drafting | M2 |
 | 2 | [critic rejects, then passes the revision](screenshots/02-m3-critic-rejects.png) | the critic rejecting a bad draft (revise/block). With `CORTEX_DEMO_BAD_DRAFT=1` the first draft is tampered with (firm GA date, "GREEN", invented 52% metric, fake PR #999). The Sonnet critic fails it on traceability, commitments and tone; the fail-action (revise, max 2) sends it back, and the revised draft passes to the HITL checkpoint | M3 |
-| 3 | _[img]_ | a grounded update citing pulled activity + a caught hallucination | M4 |
+| 3 | [grounded, cited](screenshots/03a-m4-grounded-cited.png) · [source withheld, refuses](screenshots/03b-m4-withheld-refuses.png) · [hallucination caught](screenshots/03c-m4-hallucination-caught.png) | a grounded update citing pulled activity + a caught hallucination. On the ingested data pack, every claim carries a source tag (43% from `get_activity`, PRs #820/#823). With `CORTEX_WITHHOLD=get_activity`, Cortex escalates instead of inventing; with a planted "52%" on top, the critic fails it on traceability | M4 |
 | 4 | _[img]_ | jailbreak refused + escalated | M5 |
 | 5 | _[img]_ | an iteration/cost/queue bound halting a runaway | M5 |
 | 6 | _[img]_ | end-to-end run | M6 |

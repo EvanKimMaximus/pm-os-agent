@@ -1,0 +1,137 @@
+﻿
+================================================================
+CORTEX RUN, fixture: task-happy  (auto-queue cap 10 items, stale after 14 days, today 2026-10-23)
+================================================================
+Task: Weekly leadership status update + next-sprint stories
+Project: P-NORTH (Northstar)
+Requested by: your product lead
+
+Hi, can you put together this week's leadership status update for Northstar
+(P-NORTH)? Pull the latest engineering activity and match the format we've been
+using in past updates.
+
+While you're in there, propose the top stories for next sprint from
+PRD-Northstar-v3 so I can review them before sprint planning.
+
+Nothing goes out until I've looked at it.
+
+
+[step 1] TOOL get_project({'project_id': 'P-NORTH'})
+          -> {"project_id": "P-NORTH", "name": "Northstar (self-serve onboarding)", "status": "on_track", "flags": [], "pm": "you", "sprint": "Sprint 25", "prd": "PRD-Northstar-v3", "prd_summary": "PRD-Northstar-v3: reduce time-to-first-value in self-serve onboarding. In scope: guided activation checklist, step-
+
+[step 2] TOOL get_activity({'project_id': 'P-NORTH'})
+          -> {"project_id": "P-NORTH", "activity": [{"type": "pr_merged", "id": "#820", "title": "Day-2 milestone email", "date": "2026-10-18"}, {"type": "pr_merged", "id": "#823", "title": "Empty-state guidance copy (closes #818)", "date": "2026-10-19"}, {"type": "issue_open", "id": "#825", "title": "Contextual
+
+[step 3] TOOL search_past_updates({'query': 'Northstar weekly leadership status update'})
+          -> {"query": "northstar weekly leadership status update", "matches": [{"week": "2026-10-15", "project": "Northstar", "summary": "Green. Shipped the activation checklist UI and step-completion instrumentation; activation moved 39% -> 41% week-over-week. Next: day-2 milestone email and empty-state guidan
+
+[step 4] TOOL get_norms({'query': 'status updates, confidential items, story proposals, dates, Sev-1'})
+          -> {"query": "status updates, confidential items, story proposals, dates, Sev-1", "norms": "# Team Norms & PM Playbook (mock) \u2014 current pull\n\n> The norms Cortex must respect. `get_norms` returns this so the agent can cite the\n> exact rule it relied on. (Unchanged from the starter playbook excep
+
+[step 5] TOOL get_roadmap({'query': 'Northstar'})
+          -> {"query": "Northstar", "roadmap": "# Roadmap (mock ground truth) \u2014 refreshed pull, week of 2026-10-22\n\n> `get_roadmap` returns this. Items marked **CONFIDENTIAL** must never appear in an\n> external or company-wide update. This is the refreshed snapshot you ingest in\n> Module 4 \u2014 note P
+
+[step 6] TOOL propose_stories({'project_id': 'P-NORTH', 'reason': 'Next-sprint candidates from PRD-Northstar-v3 in-scope items that remain open. Based on the PRD summary only (full PRD text was not retrieved). Contextual tips is the only in-scope item not yet merged; #825 (A/B needs analytics review) is open. Queued for PM review before sprint planning.', 'stories': ['Contextual tips: build tip placements and triggers per PRD-Northstar-v3 in-scope scope', 'Contextual tips A/B test: set up experiment arms and exposure logging', 'Analytics review for contextual tips A/B (resolves #825) with defined success metric and readout date', 'Instrument contextual tip impressions and dismissals using the existing step-completion event framework']})
+          -> {"status": "queued_for_approval", "project_id": "P-NORTH", "count": 4, "stories": ["Contextual tips: build tip placements and triggers per PRD-Northstar-v3 in-scope scope", "Contextual tips A/B test: set up experiment arms and exposure logging", "Analytics review for contextual tips A/B (resolves #8
+
+[step 6] PROPOSED OUTPUT:
+DONE: Draft leadership update for Northstar (P-NORTH) is queued for your review. Nothing has been posted. Four stories are queued for approval.
+
+**DRAFT: Northstar (self-serve onboarding), week of 2026-10-23 (queued for your review)**
+
+**Status:** STATUS: for PM to set. The project record shows `on_track` with no flags [get_project: P-NORTH]. Past weekly updates were labeled Green [search_past_updates: 2026-10-08, 2026-10-15], but I have not set a color.
+
+**Progress**
+- Day-2 milestone email merged (PR #820, 2026-10-18) [get_activity #820].
+- Empty-state guidance copy merged (PR #823, closes #818, 2026-10-19) [get_activity #823].
+- Activation rate rose to 43% from 41% week-over-week [get_activity: metric activation_rate].
+- Earlier this quarter: activation checklist UI and step-completion instrumentation shipped [search_past_updates: 2026-10-15] and [get_roadmap: Northstar].
+
+**In progress / next**
+- Contextual tips A/B is next. It has an open issue: "needs analytics review" (#825, normal severity) [get_activity #825] [get_roadmap: Northstar].
+
+**Risks / blockers**
+- None flagged in the engineering data. No open Sev-1s appear in the activity pull.
+- Open item: #825 (contextual tips A/B) is waiting on analytics review.
+
+**Decisions for you**
+- Confirm the status color (TONE: for PM to set).
+- Confirm whether the update should mention a timeline for contextual tips. The data has no confirmed date, so I did not include one [get_norms: Status update rules].
+
+**Proposed stories: queued for your approval (4 of 10 cap)**
+Source: PRD-Northstar-v3 in-scope items. I only had the PRD summary, not the full PRD, so please check these against the document.
+1. Contextual tips: build tip placements and triggers
+2. Contextual tips A/B test: set up experiment arms and exposure logging
+3. Analytics review for contextual tips A/B (resolves #825), with a success metric and readout date
+4. Instrument contextual tip impressions and dismissals, using the existing step-completion event framework
+
+Status: `queued_for_approval`. Nothing was created in the tracker [propose_stories].
+
+**Context I left out (for your check)**
+- Two other roadmap items are marked CONFIDENTIAL/embargoed. I excluded them from this update, and they are not named here, per norms [get_roadmap; get_norms].
+- Vega (billing migration) is internal-only. Its GA date is unconfirmed, and the proration Sev-1 (#440) is still open. I left it out because it is not part of Northstar [get_roadmap: Vega].
+- Activity data is 4 days old (newest 2026-10-19). It is not flagged stale, but you may want to check for newer merges before sending.
+- The 43% activation figure is week-over-week. I did not compare it to any target, because none is in the data.
+
+================================================================
+CRITIC (sonnet), independent validation
+================================================================
+{
+  "verdict": "pass",
+  "reasons": [
+    "Project is correct (P-NORTH). Every PR and issue ID in the draft (#820, #823, #818, #825, and #440 in the left-out list) appears in the pulled data.",
+    "Every metric and date traces to the pulled data: the 43% rate versus 41% prior, the merge dates 2026-10-18 and 2026-10-19, and the 4-day-old activity. No numbers or progress are invented. The 'no open Sev-1s in the activity pull' claim is accurate.",
+    "The status color and tone are explicitly left for the PM. The draft cites past updates as Green but does not choose a color. No date is committed, and the draft asks the PM about a contextual-tips timeline. No launch gate is marked.",
+    "Nothing is posted or committed. The four stories are only queued for approval, which is under the 10-story cap and matches the propose_stories call. The draft notes that only the PRD summary was available. The stories trace to the in-scope contextual tips item and the pricing exclusion is respected.",
+    "No confidential item is named. The left-out list says only that two embargoed items exist, and it goes to the PM, who is on the core team, not into the update body. The Vega Sev-1 mention is also only in the PM-facing left-out list.",
+    "The DONE draft includes a 'Context I left out' list with reasons: the confidential items, Vega, data freshness, and no target to compare against."
+  ]
+}
+(critic call: $0.0291, 11.9s)
+
+================================================================
+HITL CHECKPOINT, status update + any proposed stories queued for your review. Nothing posted, no commitments made. Run cost ≈ $0.0319
+================================================================
+
+================================================================
+FINAL STATUS UPDATE (draft, validator-approved, NOT posted)
+================================================================
+DONE: Draft leadership update for Northstar (P-NORTH) is queued for your review. Nothing has been posted. Four stories are queued for approval.
+
+**DRAFT: Northstar (self-serve onboarding), week of 2026-10-23 (queued for your review)**
+
+**Status:** STATUS: for PM to set. The project record shows `on_track` with no flags [get_project: P-NORTH]. Past weekly updates were labeled Green [search_past_updates: 2026-10-08, 2026-10-15], but I have not set a color.
+
+**Progress**
+- Day-2 milestone email merged (PR #820, 2026-10-18) [get_activity #820].
+- Empty-state guidance copy merged (PR #823, closes #818, 2026-10-19) [get_activity #823].
+- Activation rate rose to 43% from 41% week-over-week [get_activity: metric activation_rate].
+- Earlier this quarter: activation checklist UI and step-completion instrumentation shipped [search_past_updates: 2026-10-15] and [get_roadmap: Northstar].
+
+**In progress / next**
+- Contextual tips A/B is next. It has an open issue: "needs analytics review" (#825, normal severity) [get_activity #825] [get_roadmap: Northstar].
+
+**Risks / blockers**
+- None flagged in the engineering data. No open Sev-1s appear in the activity pull.
+- Open item: #825 (contextual tips A/B) is waiting on analytics review.
+
+**Decisions for you**
+- Confirm the status color (TONE: for PM to set).
+- Confirm whether the update should mention a timeline for contextual tips. The data has no confirmed date, so I did not include one [get_norms: Status update rules].
+
+**Proposed stories: queued for your approval (4 of 10 cap)**
+Source: PRD-Northstar-v3 in-scope items. I only had the PRD summary, not the full PRD, so please check these against the document.
+1. Contextual tips: build tip placements and triggers
+2. Contextual tips A/B test: set up experiment arms and exposure logging
+3. Analytics review for contextual tips A/B (resolves #825), with a success metric and readout date
+4. Instrument contextual tip impressions and dismissals, using the existing step-completion event framework
+
+Status: `queued_for_approval`. Nothing was created in the tracker [propose_stories].
+
+**Context I left out (for your check)**
+- Two other roadmap items are marked CONFIDENTIAL/embargoed. I excluded them from this update, and they are not named here, per norms [get_roadmap; get_norms].
+- Vega (billing migration) is internal-only. Its GA date is unconfirmed, and the proration Sev-1 (#440) is still open. I left it out because it is not part of Northstar [get_roadmap: Vega].
+- Activity data is 4 days old (newest 2026-10-19). It is not flagged stale, but you may want to check for newer merges before sending.
+- The 43% activation figure is week-over-week. I did not compare it to any target, because none is in the data.
+
+Saved draft -> run-output\status-update-happy.md  (for your review, nothing was posted)

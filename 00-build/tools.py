@@ -43,7 +43,19 @@ def today() -> date:
 
 
 def _load_json(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+
+
+def withheld(tool_name: str) -> bool:
+    """Grounding probe (M4): CORTEX_WITHHOLD=get_activity (comma-separated) makes a
+    source unavailable so you can watch Cortex refuse instead of inventing."""
+    names = os.environ.get("CORTEX_WITHHOLD", "")
+    return tool_name in {n.strip() for n in names.split(",") if n.strip()}
+
+
+def _withheld_result(tool_name: str) -> dict:
+    return {"error": "source_unavailable", "tool": tool_name,
+            "hint": "this source is unavailable for this run, do not guess its contents"}
 
 
 def get_task(which: str = "happy") -> dict:
@@ -57,7 +69,7 @@ def get_task(which: str = "happy") -> dict:
     if not path.exists():
         return {"error": f"no task fixture named '{which}'",
                 "available": ["happy", "missing-data", "jailbreak"]}
-    return {"which": which, "body": path.read_text()}
+    return {"which": which, "body": path.read_text(encoding="utf-8")}
 
 
 def get_project(project_id: str) -> dict:
@@ -76,6 +88,8 @@ def get_project(project_id: str) -> dict:
 
 def get_activity(project_id: str) -> dict:
     """Pull recent engineering activity (merged PRs, open issues, Sev-1s) for a project."""
+    if withheld("get_activity"):
+        return _withheld_result("get_activity")
     project_id = str(project_id).strip()
     projects = _load_json("projects.json")
     record = projects.get(project_id)
@@ -105,25 +119,38 @@ def search_past_updates(query: str = "") -> dict:
     """Search previous status updates and decisions for tone and precedent (the
     memory/retrieval surface).
 
-    Naive keyword overlap over a small fixture so M4's retrieve-vs-reason lesson is
-    concrete: relevant precedent is returned, irrelevant precedent is not."""
+    Keyword overlap over a small fixture, plus two agentic moves (M4): GRADING (an
+    item must match at least two query terms, or the query names its project, to
+    count as relevant) and RERANKING (best match first, newest first on ties). When
+    nothing is relevant it says so, instead of returning plausible-looking filler."""
+    if withheld("search_past_updates"):
+        return _withheld_result("search_past_updates")
     query = (query or "").lower()
     corpus = _load_json("past-updates.json") + _load_json("decision-log.json")
     terms = {t for t in query.replace("#", " ").split() if len(t) > 2}
-    hits = []
+    graded = []
     for u in corpus:
-        haystack = f"{u.get('project','')} {u.get('summary','')} {u.get('theme','')}".lower()
-        if terms and any(term in haystack for term in terms):
-            hits.append(u)
-    return {"query": query, "matches": hits or corpus[:2],
-            "note": "prior updates + decisions for precedent, team norms still govern."}
+        project = u.get("project", "").lower()
+        haystack = f"{project} {u.get('summary','')} {u.get('theme','')}".lower()
+        score = sum(term in haystack for term in terms)
+        if score >= 2 or (project and project in terms):
+            graded.append((score, u.get("week") or u.get("date") or "", u))
+    graded.sort(key=lambda g: (g[0], g[1]), reverse=True)
+    if not graded:
+        return {"query": query, "matches": [],
+                "note": "no relevant precedent found, do not invent one."}
+    return {"query": query, "matches": [u for _, _, u in graded[:5]],
+            "note": "prior updates + decisions for precedent (graded, best first), "
+                    "team norms still govern."}
 
 
 def get_roadmap(query: str = "") -> dict:
     """Return the roadmap. Some items are flagged confidential/embargoed, those must
     never appear in an external or company-wide update. `query` is a hint; the file
     is small enough to return whole so the agent can cite what it relied on."""
-    text = (FIXTURES / "roadmap.md").read_text()
+    if withheld("get_roadmap"):
+        return _withheld_result("get_roadmap")
+    text = (FIXTURES / "roadmap.md").read_text(encoding="utf-8")
     return {"query": query, "roadmap": text,
             "warning": "items marked CONFIDENTIAL must not be shared outside the core team."}
 
@@ -131,7 +158,9 @@ def get_roadmap(query: str = "") -> dict:
 def get_norms(query: str = "") -> dict:
     """Return the team norms / PM playbook. `query` is a hint; the full playbook is
     small enough to return whole so the agent can cite the exact rule it relied on."""
-    text = (FIXTURES / "team-norms.md").read_text()
+    if withheld("get_norms"):
+        return _withheld_result("get_norms")
+    text = (FIXTURES / "team-norms.md").read_text(encoding="utf-8")
     return {"query": query, "norms": text}
 
 

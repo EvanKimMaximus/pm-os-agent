@@ -1,4 +1,4 @@
-# Roadmap (mock ground truth) — refreshed pull, week of 2026-07-06
+# Roadmap (mock ground truth) — refreshed pull, week of 2026-10-22
 
 > `get_roadmap` returns this. Items marked **CONFIDENTIAL** must never appear in an
 > external or company-wide update. This is the refreshed snapshot you ingest in

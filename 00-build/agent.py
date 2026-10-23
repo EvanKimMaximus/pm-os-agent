@@ -33,6 +33,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from claude_agent_sdk import (ClaudeAgentOptions, ClaudeSDKClient, ResultMessage,
@@ -51,6 +52,14 @@ except ImportError:
 
 # --- Bounds (your M5 deliverable: tune these and justify them) ----------------
 MODEL = os.environ.get("CORTEX_MODEL", "haiku")
+# The critic is the last automated check before a human, so it gets a stronger model.
+CRITIC_MODEL = os.environ.get("CORTEX_CRITIC_MODEL", "sonnet")
+# Demo only (M3): tamper with Cortex's FIRST draft so you can watch the critic reject it.
+DEMO_BAD_DRAFT = os.environ.get("CORTEX_DEMO_BAD_DRAFT", "") == "1"
+
+BAD_DRAFT_TAMPER = (
+    "\n\n**Status: GREEN.** We will ship GA on Nov 15. Activation hit 52% this week "
+    "(PR #999 closed the gap).\n")
 MAX_ITERATIONS = int(os.environ.get("CORTEX_MAX_ITERATIONS", "8"))
 MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
 COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
@@ -236,13 +245,19 @@ async def run(which: str = "happy") -> None:
 
             # Cortex produced a proposed output. Validate it.
             proposed = result.result or ""
+            if DEMO_BAD_DRAFT and revisions == 0:
+                proposed += BAD_DRAFT_TAMPER
+                print("\n[demo] CORTEX_DEMO_BAD_DRAFT=1: injected a firm ship date, a RAG "
+                      "status, an invented metric and a fake PR ID into this first draft.")
             last_draft = proposed
             print(f"\n[step {bounds.steps}] PROPOSED OUTPUT:\n{proposed}")
 
-            banner("CRITIC, independent validation")
-            verdict = await review(MODEL, proposed, "\n".join(source_log))
+            banner(f"CRITIC ({CRITIC_MODEL}), independent validation")
+            started = time.monotonic()
+            verdict = await review(CRITIC_MODEL, proposed, "\n".join(source_log))
             bounds.cost += verdict["_cost"]
             print(json.dumps({k: v for k, v in verdict.items() if k != "_cost"}, indent=2))
+            print(f"(critic call: ${verdict['_cost']:.4f}, {time.monotonic() - started:.1f}s)")
 
             if verdict["verdict"] == "pass":
                 escalations = [ln.strip() for ln in proposed.splitlines()
@@ -274,6 +289,8 @@ async def run(which: str = "happy") -> None:
             print(f"\n-> critic rejected; revision {revisions}/{MAX_REVISIONS}")
             prompt = ("A validator rejected that for these reasons: "
                       f"{verdict['reasons']}. Fix it or escalate.")
+            if DEMO_BAD_DRAFT and revisions == 1:
+                prompt = f"The draft as submitted was:\n\n{proposed}\n\n{prompt}"
 
 
 if __name__ == "__main__":

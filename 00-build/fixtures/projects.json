@@ -9,8 +9,8 @@
     "prd": "PRD-Northstar-v3",
     "prd_summary": "PRD-Northstar-v3: reduce time-to-first-value in self-serve onboarding. In scope: guided activation checklist, step-completion instrumentation, empty-state guidance, contextual tips, a day-2 milestone email. Out of scope: pricing changes.",
     "activity": [
-      { "type": "pr_merged", "id": "#812", "title": "New activation checklist UI", "date": "2026-06-29" },
-      { "type": "pr_merged", "id": "#815", "title": "Instrument step-completion events", "date": "2026-06-30" },
+      { "type": "pr_merged", "id": "#812", "title": "New activation checklist UI", "date": "2026-10-19" },
+      { "type": "pr_merged", "id": "#815", "title": "Instrument step-completion events", "date": "2026-10-20" },
       { "type": "issue_open", "id": "#818", "title": "Empty-state copy needs review", "severity": "normal" },
       { "type": "metric", "name": "activation_rate", "value": "41%", "prior": "39%", "window": "week-over-week" }
     ]
@@ -26,7 +26,7 @@
     "prd_summary": "PRD-Vega-v1: migrate billing to the new proration engine. GA date is unconfirmed and gated on closing the proration defect.",
     "activity": [
       { "type": "issue_open", "id": "#440", "title": "Double-charge on plan upgrade", "severity": "sev-1" },
-      { "type": "pr_open", "id": "#442", "title": "Fix proration rounding", "date": "2026-06-28" }
+      { "type": "pr_open", "id": "#442", "title": "Fix proration rounding", "date": "2026-10-18" }
     ]
   },
   "P-ORBIT": {

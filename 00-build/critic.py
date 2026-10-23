@@ -40,7 +40,8 @@ async def review(model: str, proposed_output: str, source_data: str) -> dict:
     except Exception:  # the SDK raises after an error result; we already kept it
         pass
 
-    verdict = result.structured_output if result and result.subtype == "success" else None
+    ok = result is not None and result.subtype == "success" and not result.is_error
+    verdict = result.structured_output if ok else None
     if not isinstance(verdict, dict) or "verdict" not in verdict:
         verdict = {"verdict": "fail", "reasons": ["critic returned unparseable output"]}
     verdict["_cost"] = (result.total_cost_usd or 0.0) if result else 0.0

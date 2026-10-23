@@ -21,7 +21,7 @@ Real screenshots of *your* Cortex running. These are the `00-build/CORTEX-ANATOM
 
 | # | Screenshot | What it shows | From |
 |---|---|---|---|
-| 1 | _[img]_ | happy-path run: a real drafted update + the HITL checkpoint (queued, not posted) | M2 |
+| 1 | [happy path](screenshots/01-m2-happy-hitl.png) · [missing-data escalate](screenshots/01b-m2-missing-data-escalate.png) · [stale-data escalate](screenshots/01c-m2-stale-escalate.png) | happy-path run: a real drafted update + the HITL checkpoint (queued, not posted). Plus two non-success stops firing: an unknown project escalates instead of inventing data or a GA date, and stale activity (>14 days) escalates without drafting | M2 |
 | 2 | _[img]_ | the critic rejecting a bad draft (revise/block) | M3 |
 | 3 | _[img]_ | a grounded update citing pulled activity + a caught hallucination | M4 |
 | 4 | _[img]_ | jailbreak refused + escalated | M5 |

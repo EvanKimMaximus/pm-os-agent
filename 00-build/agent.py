@@ -54,7 +54,8 @@ MODEL = os.environ.get("CORTEX_MODEL", "haiku")
 MAX_ITERATIONS = int(os.environ.get("CORTEX_MAX_ITERATIONS", "8"))
 MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
 COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
-MAX_QUEUE_ITEMS = int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
+MAX_QUEUE_ITEMS = tools.max_queue_items()      # enforced in tools.propose_stories
+MAX_STALE_DAYS = tools.max_stale_days()        # enforced in tools.get_activity
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
@@ -175,7 +176,8 @@ async def run(which: str = "happy") -> None:
         print(task)
         return
 
-    banner(f"CORTEX RUN, fixture: task-{which}  (auto-queue cap {MAX_QUEUE_ITEMS} items)")
+    banner(f"CORTEX RUN, fixture: task-{which}  (auto-queue cap {MAX_QUEUE_ITEMS} items, "
+           f"stale after {MAX_STALE_DAYS} days, today {tools.today().isoformat()})")
     print(task["body"])
 
     source_log: list[str] = [task["body"]]
@@ -224,8 +226,9 @@ async def run(which: str = "happy") -> None:
             if result.subtype == "error_max_budget_usd":
                 bounds.cost = max(bounds.cost, COST_CAP_USD)
                 continue  # loops back to the cost-cap check above
-            if result.subtype != "success":
-                reason = f"agent run failed ({result.subtype})"
+            if result.subtype != "success" or result.is_error:
+                detail = (result.result or "").strip().splitlines()[:1]
+                reason = f"agent run failed ({result.subtype}{': ' + detail[0] if detail else ''})"
                 banner(f"RUN ERROR, {reason}. Escalating.")
                 emit_deliverable(which, last_draft, accepted=False,
                                  reason=reason, cost=bounds.cost)
@@ -242,6 +245,16 @@ async def run(which: str = "happy") -> None:
             print(json.dumps({k: v for k, v in verdict.items() if k != "_cost"}, indent=2))
 
             if verdict["verdict"] == "pass":
+                escalations = [ln.strip() for ln in proposed.splitlines()
+                               if ln.strip().startswith("ESCALATE:")]
+                if escalations:
+                    reason = escalations[-1]
+                    banner(f"ESCALATED, Cortex stopped and handed this to a human. "
+                           f"Nothing drafted for posting, nothing posted. "
+                           f"Run cost ≈ ${bounds.cost:.4f}")
+                    emit_deliverable(which, proposed, accepted=False,
+                                     reason=reason, cost=bounds.cost)
+                    return
                 banner(f"HITL CHECKPOINT, status update + any proposed stories queued for "
                        f"your review. Nothing posted, no commitments made. "
                        f"Run cost ≈ ${bounds.cost:.4f}")

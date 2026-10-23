@@ -15,14 +15,31 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date
 from pathlib import Path
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# Commitment bound (M5). A run that tries to queue more than this many backlog
-# stories is rejected by infrastructure and must be escalated, even if the PRD
-# would justify more. Auto-committing a flood of "real" work is the money analog.
-MAX_QUEUE_ITEMS = int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
+
+# Bounds below are read at CALL time, not import time: agent.py imports this
+# module before it loads .env, so an import-time read would ignore your .env.
+
+def max_queue_items() -> int:
+    """Commitment bound (M5). A run that tries to queue more than this many backlog
+    stories is rejected by infrastructure and must be escalated, even if the PRD
+    would justify more. Auto-committing a flood of "real" work is the money analog."""
+    return int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
+
+
+def max_stale_days() -> int:
+    """Stale-data stop (M2). Activity older than this means Cortex must not draft."""
+    return int(os.environ.get("CORTEX_MAX_STALE_DAYS", "14"))
+
+
+def today() -> date:
+    """Today's date. CORTEX_TODAY=YYYY-MM-DD overrides it, only to demo the stale exit."""
+    pinned = os.environ.get("CORTEX_TODAY", "").strip()
+    return date.fromisoformat(pinned) if pinned else date.today()
 
 
 def _load_json(name: str) -> dict:
@@ -64,7 +81,24 @@ def get_activity(project_id: str) -> dict:
     record = projects.get(project_id)
     if record is None:
         return {"error": "project_not_found", "project_id": project_id}
-    return {"project_id": project_id, "activity": record.get("activity", [])}
+    activity = record.get("activity", [])
+
+    # Stale-data stop, enforced here in infrastructure rather than left to the model.
+    dates = [date.fromisoformat(a["date"]) for a in activity if a.get("date")]
+    if not dates:
+        return {"project_id": project_id, "activity": activity, "stale": True,
+                "error": "activity_stale", "reason": "no dated activity found",
+                "action": "stop and escalate, do not draft"}
+    newest = max(dates)
+    days_old = (today() - newest).days
+    if days_old > max_stale_days():
+        return {"project_id": project_id, "activity": activity, "stale": True,
+                "error": "activity_stale", "newest_activity": newest.isoformat(),
+                "today": today().isoformat(),
+                "days_old": days_old, "max_stale_days": max_stale_days(),
+                "action": "stop and escalate, do not draft"}
+    return {"project_id": project_id, "activity": activity, "stale": False,
+            "newest_activity": newest.isoformat(), "days_old": days_old}
 
 
 def search_past_updates(query: str = "") -> dict:
@@ -110,11 +144,11 @@ def propose_stories(project_id: str, stories=None, reason: str = "") -> dict:
         stories = [stories]
     if not isinstance(stories, list):
         return {"error": "invalid_stories", "stories": stories}
-    if len(stories) > MAX_QUEUE_ITEMS:
+    if len(stories) > max_queue_items():
         return {"status": "rejected",
                 "error": "batch_exceeds_queue_cap",
                 "count": len(stories),
-                "cap_items": MAX_QUEUE_ITEMS,
+                "cap_items": max_queue_items(),
                 "action": "escalate to a human, do not split the batch to dodge the cap"}
     return {"status": "queued_for_approval",
             "project_id": str(project_id).strip(),

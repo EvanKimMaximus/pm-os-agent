@@ -1,18 +1,24 @@
 [
   {
-    "date": "2026-09-30",
+    "date": "2026-10-18",
+    "project": "Pulsar",
+    "summary": "Decision: Pulsar joins the confidential/embargoed set with Orbit. Never reference it in company-wide or external updates until launch; core-team channel only.",
+    "theme": "confidential, embargo, pulsar, orbit"
+  },
+  {
+    "date": "2026-09-26",
     "project": "Vega",
     "summary": "Decision: do not commit a Vega GA date until the proration Sev-1 is closed and QA signs off. The date question is escalated, not answered by the PM alone.",
     "theme": "unconfirmed date, escalate, launch gate"
   },
   {
-    "date": "2026-09-17",
+    "date": "2026-09-13",
     "project": "team",
     "summary": "Decision: backlog batches larger than 10 stories go to sprint planning to be sized, not straight into the tracker.",
     "theme": "backlog cap, queue, sprint planning"
   },
   {
-    "date": "2026-09-09",
+    "date": "2026-09-05",
     "project": "Orbit",
     "summary": "Decision: Orbit stays embargoed and is never referenced in company-wide or external updates until launch.",
     "theme": "confidential, embargo, orbit"

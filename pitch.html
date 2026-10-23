@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cortex, a PM Chief-of-Staff Agent, Pitch</title>
+<style>
+
+
+
+:root{--bg:#07162C;--fg:#ffffff;--muted:#ffffff;--accent:#60a5fa;--accent2:#79c0ff;--line:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.035)}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:'Saans',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(96,165,250,0.10) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 90% 90%,rgba(124,140,255,0.08) 0%,transparent 60%);pointer-events:none;z-index:0}
+main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:80px 40px 0}
+h1,h2,h3{font-family:'Saans',sans-serif;letter-spacing:-0.01em;margin:0}
+a{color:var(--accent);text-decoration:none}
+code{font-family:'Antarctican Mono',monospace}
+.hero{text-align:center;margin-bottom:100px}
+.hero .badge{display:inline-block;font-family:'Saans',sans-serif;font-size:10.5px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent2);background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.30);border-radius:999px;padding:6px 14px;margin-bottom:26px}
+.hero h1{font-size:clamp(42px,7vw,80px);font-weight:900;line-height:1.02;margin:0 0 22px;background:linear-gradient(135deg,#ffffff 0%,#79c0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{font-size:clamp(18px,2.2vw,26px);color:#ffffff;max-width:760px;margin:0 auto 30px;line-height:1.5}
+.hero .meta{font-family:'Saans',sans-serif;font-size:13.5px;color:var(--muted);letter-spacing:0.06em;margin:0 0 30px}
+.hero .ctas{display:inline-flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.hero .cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;padding:13px 28px;border-radius:999px;font-family:'Saans',sans-serif;font-weight:800;font-size:14px;box-shadow:0 10px 30px rgba(96,165,250,0.30);transition:transform 0.15s,box-shadow 0.15s}
+.hero .cta:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(96,165,250,0.40)}
+.hero .cta.secondary{background:transparent;border:1px solid var(--line);color:var(--fg);box-shadow:none}
+section.block{margin-bottom:100px}
+.eyebrow{font-family:'Saans',sans-serif;font-size:11px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px}
+.block h2{font-size:clamp(30px,4vw,46px);font-weight:800;margin:0 0 12px;color:#fff}
+.block .lede{font-size:16px;color:var(--muted);margin:0 0 36px;max-width:680px;line-height:1.55}
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.m-card{background:var(--card);border:1px solid color-mix(in srgb,var(--col) 40%,transparent);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.m-card .m-head{padding:18px 22px;background:linear-gradient(135deg,color-mix(in srgb,var(--col) 18%,transparent) 0%,transparent 70%);border-bottom:1px solid color-mix(in srgb,var(--col) 25%,transparent)}
+.m-card .m-num{font-family:'Saans',sans-serif;font-size:26px;font-weight:900;line-height:1;color:var(--col);margin-bottom:5px}
+.m-card .m-num .m-emoji{font-size:22px;margin-left:4px}
+.m-card .m-name{font-family:'Saans',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.m-card .m-body{padding:14px 22px 18px}
+.m-card .m-link{display:flex;align-items:center;gap:8px;font-size:13px;color:#ffffff;margin:8px 0;text-decoration:none}
+.m-card .m-link code{font-size:11.5px;background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:6px;color:#ffffff}
+.m-card .m-link:hover code{background:rgba(255,255,255,0.10);color:#fff}
+.m-card .m-link.missing{opacity:0.42;font-style:italic}
+.m-card .m-arrow{color:var(--col);font-weight:800}
+.exec-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.exec-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 22px}
+.exec-card .exec-step{display:inline-block;font-family:'Saans',sans-serif;font-size:10.5px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px}
+.exec-card h3{font-size:15px;font-weight:800;color:#fff;margin:0 0 12px}
+.exec-card .exec-body{font-size:12.5px;color:#ffffff;line-height:1.6}
+.exec-card .exec-body em{color:var(--muted)}
+.insights-row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.insight{background:var(--card);border:1px solid;border-radius:14px;padding:24px 26px}
+.insight .ic-label{font-family:'Saans',sans-serif;font-size:10.5px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:12px}
+.insight h3{font-size:17px;font-weight:800;margin:0;color:#fff;line-height:1.45}
+.loom-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:30px;text-align:center;margin-bottom:60px}
+.loom-wrap a{display:inline-flex;align-items:center;gap:10px;background:rgba(124,140,255,0.10);border:1px solid rgba(124,140,255,0.30);color:#bcb1ff;padding:13px 26px;border-radius:999px;font-family:'Saans',sans-serif;font-weight:800;font-size:14px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:40px 20px;border-top:1px solid var(--line);margin-top:60px;letter-spacing:0.04em}
+@media(max-width:800px){.insights-row{grid-template-columns:1fr}main{padding:60px 24px 0}}
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <span class="badge">Agentic Loops for PMs Certification</span>
+    <h1>Cortex, a PM Chief-of-Staff Agent</h1>
+    <p class="lead">A bounded PM chief-of-staff that drafts the weekly leadership update and next sprint's stories from real activity, cites every claim, gets checked by an independent critic, and never posts on its own.</p>
+    <p class="meta">Evan Kim · Advanced AI Agents (Agentic Loops for PMs) · IDEXX cohort · Oct 2026</p>
+    <div class="ctas"><a class="cta" href="https://github.com/EvanKimMaximus/pm-os-agent" target="_blank" rel="noopener">View the repo &rarr;</a></div>
+  </section>
+  <section class="block">
+    <div class="eyebrow">Module artifacts</div>
+    <h2>The 6 building blocks</h2>
+    <p class="lede">Six modules. Six artifacts. One coherent body of work that turns Cortex from a line on a page into a bounded, shippable agent.</p>
+    <div class="modules-grid"><div class="m-card" style="--col:#3b82f6"><div class="m-head"><div class="m-num">M1 <span class="m-emoji">&#x1F4CF;</span></div><div class="m-name">The Agent Line</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/01-agent-line/agent-line-map.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Agent-line map: <code>01-agent-line/agent-line-map.md</code></a></div></div><div class="m-card" style="--col:#fbbf24"><div class="m-head"><div class="m-num">M2 <span class="m-emoji">&#x1F501;</span></div><div class="m-name">Loop Engineering</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/02-loop-design/loop-spec.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Loop spec: <code>02-loop-design/loop-spec.md</code></a></div></div><div class="m-card" style="--col:#bcb1ff"><div class="m-head"><div class="m-num">M3 <span class="m-emoji">&#x1F9E9;</span></div><div class="m-name">Orchestration &amp; Subagents</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/03-orchestration/orchestration-map.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Orchestration map: <code>03-orchestration/orchestration-map.md</code></a></div></div><div class="m-card" style="--col:#34d399"><div class="m-head"><div class="m-num">M4 <span class="m-emoji">&#x1F9E0;</span></div><div class="m-name">Context Engineering &amp; Memory</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/04-memory-context/memory-and-context.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Memory &amp; context: <code>04-memory-context/memory-and-context.md</code></a></div></div><div class="m-card" style="--col:#f472b6"><div class="m-head"><div class="m-num">M5 <span class="m-emoji">&#x1F6E1;&#xFE0F;</span></div><div class="m-name">Bounds &amp; Evals</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/05-bounds-evals/bounds-and-evals.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Bounds &amp; evals: <code>05-bounds-evals/bounds-and-evals.md</code></a></div></div><div class="m-card" style="--col:#79c0ff"><div class="m-head"><div class="m-num">M6 <span class="m-emoji">&#x1F39A;&#xFE0F;</span></div><div class="m-name">Autonomy &amp; Production</div></div><div class="m-body"><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/06-autonomy/production-and-autonomy.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Production &amp; autonomy: <code>06-autonomy/production-and-autonomy.md</code></a><a class="m-link" href="https://github.com/EvanKimMaximus/pm-os-agent/blob/main/06-autonomy/prototype.md" target="_blank" rel="noopener"><span class="m-arrow">&rarr;</span> Prototype: <code>06-autonomy/prototype.md</code></a></div></div></div>
+  </section>
+  <section class="block">
+    <div class="eyebrow">Ship plan</div>
+    <h2>How I'd ship Cortex</h2>
+    <p class="lede">The autonomy dial per segment, where it sits on the trust ladder, how it deploys, what it returns, and how I keep it safe.</p>
+    <div class="exec-rail"><div class="exec-card"><div class="exec-step">01 &middot; Dial</div><h3>Autonomy per segment</h3><div class="exec-body">- A PM new to Cortex (&quot;Tesla driver&quot;) → Supervised: every draft and story batch waits for approval until Cortex has proven itself.<br>- Me, the Northstar PM, after a clean shadow period (&quot;Waymo passenger&quot;, drafting lane only) → Bounded-autonomous: the Monday cron drafts and queues without me starting it; I spot-check. Tone, posting and escalation choices stay mine.<br>- Exec / leadership readers → Assisted: they only see what I approved and posted; Cortex never acts toward them.<br>- The dial never moves the M1 agent line: posting, tone/RAG status, dates and what to escalate stay above the line for everyone.</div></div><div class="exec-card"><div class="exec-step">02 &middot; Ladder</div><h3>Rung + eval gate</h3><div class="exec-body">Current rung: Supervised by design, proven on fixtures only (every run ends at a HITL checkpoint or an escalation; 6/6 M5 evals pass). In production it starts at Shadow on real weekly briefs.<br>Eval gate Shadow → Supervised, over 4 consecutive weeks (≥4 briefs/project): EV-1 tool-call accuracy ≥95%, EV-5 jailbreak safety 100% (0 unsafe steps), critic pass ≥90% with ≤10% hitting the revision cap, EV-4 completion ≥90%, 0 invented figures/dates in my weekly spot-check.<br>Gate Supervised → Bounded-autonomous (drafting lane): 8 weeks with ≥95% of drafts approved with only tone edits and 0 trust incidents.<br>Incident record: 0 trust incidents to date (bugs found in testing were fixed, none reached a reader).</div></div><div class="exec-card"><div class="exec-step">03 &middot; Deploy</div><h3>Where it runs &amp; who owns it</h3><div class="exec-body">- Runtime: serverless function, triggered by the M2 hook (a new PM brief) plus a Monday 9:00 cron; ~50 s runs, no state between runs. Production auth via an API key under a company agreement, not a personal login.<br>- On-call: Evan Kim (PM, owner, go/no-go and the dial); backup: the Northstar engineering lead (kill switch + rollback).<br>- Rollback: create CORTEX_KILL (halts every run) → drop the dial a rung → remove a tool from TOOLS → git revert the last prompt/tool/model change.<br>- Monitoring: eval pass % per case, escalation rate and reasons, critic-reject rate, revision-cap hits, cost per run and per day (spend ledger), timeouts, trust-incident count.</div></div><div class="exec-card"><div class="exec-step">04 &middot; ROI</div><h3>Value, not activity</h3><div class="exec-body">- Outcome: ≥80% of weekly updates reach my checkpoint and are approved with only tone edits; ~45 min/week saved per project vs my shadow-period baseline.<br>- Cost-to-serve: ≤$0.10 model cost per completed update (measured $0.03–0.06 with the Sonnet critic) + ~5 min of my review, fully loaded.<br>- Trust incidents: 0 per quarter; any one freezes the dial and drops a rung.<br>- Widen rule: Cortex moves up one rung, for one segment, only after 4 consecutive weeks at or above every gate threshold with zero trust incidents; any single trust incident drops it back a rung immediately.</div></div><div class="exec-card"><div class="exec-step">05 &middot; Governance</div><h3>How I keep it safe</h3><div class="exec-body">- Compliance: no customer, clinic, patient or personal data ever enters a prompt; only project/engineering metadata. CONFIDENTIAL items (Orbit, Pulsar) flagged at source and blocked by the critic; drafts kept 30 days, gitignored.<br>- Safety: Cortex has no publish/create/merge/gate tool; posting, tone, dates and escalation choices stay above the line for everyone. Future posting = a single-use, per-update, per-channel credential minted only when I approve. Kill switch owned by me + eng lead.<br>- Reliability: 8-step cap, 120 s timeout, $0.20/run and $5/day caps, 2 critic revisions, 14-day stale-data stop, escalate on missing/stale/withheld data; model down → no draft, I write it by hand.<br>- Strategy: next is one-click posting to the internal team channel only, gated by 8 weeks at ≥95% approve-without-factual-edits, EV-5 at 100%, 0 incidents. Before that: automated eval runner + CI gate, replay harness, read-only Jira/GitHub connectors.</div></div></div>
+  </section>
+  <section class="block">
+    <div class="eyebrow">Build insights</div>
+    <h2>What I learned</h2>
+    <p class="lede">The honest three: where it hurt, what clicked, and the moment something changed.</p>
+    <div class="insights-row"><div class="insight" style="border-color:rgba(248,113,113,0.40)"><div class="ic-label" style="color:#f87171">&#x1F635; Friction</div><h3>Getting it to run at all. My OpenAI key kept getting rejected, so I moved Cortex onto the Claude Agent SDK, and then the sample data turned out to be four months old, so my own stale-data rule stopped every run until I refreshed it.</h3></div><div class="insight" style="border-color:rgba(96,165,250,0.40)"><div class="ic-label" style="color:#60a5fa">&#x1F9E0; Learning</div><h3>Capability isn't permission. The better question isn't whether the agent can do something, it's what happens if it gets it wrong and nobody checks.</h3></div><div class="insight" style="border-color:rgba(251,191,36,0.40)"><div class="ic-label" style="color:#fbbf24">&#x1F4A1; Aha</div><h3>The thing that keeps Cortex safe is the tool it doesn't have. The jailbreak claimed posting was pre-approved, and nothing could happen because Cortex has no way to post at all.</h3></div></div>
+  </section>
+
+  <footer>Evan Kim · Advanced AI Agents (Agentic Loops for PMs) · IDEXX cohort · Oct 2026 &middot; Certification submission &middot; Agentic Loops for PMs</footer>
+</main>
+</body>
+</html>

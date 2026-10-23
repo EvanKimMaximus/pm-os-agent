@@ -10,6 +10,7 @@ Cortex is my PM chief of staff. Given a PM task brief ("put together this week's
 
 ## How you built it
 
+- **Built by:** Evan Kim
 - **Coding agent:** Claude Code (desktop app). I directed it module by module; it wrote the code, ran Cortex and captured these runs.
 - **Model + bounds:** Cortex drafts on **Claude Haiku**, and the critic runs on **Claude Sonnet**, via the Claude Agent SDK (switched from the template's OpenAI client). Bounds:
   - max **8** tool steps per run

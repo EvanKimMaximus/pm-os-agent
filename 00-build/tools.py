@@ -53,6 +53,19 @@ def withheld(tool_name: str) -> bool:
     return tool_name in {n.strip() for n in names.split(",") if n.strip()}
 
 
+_failed_once: set[str] = set()
+
+
+def fail_once(tool_name: str) -> bool:
+    """Recovery eval (M5): CORTEX_FAIL_ONCE=get_activity makes that tool's FIRST call
+    fail like an upstream 500, then work normally, so you can watch Cortex retry."""
+    names = {n.strip() for n in os.environ.get("CORTEX_FAIL_ONCE", "").split(",") if n.strip()}
+    if tool_name in names and tool_name not in _failed_once:
+        _failed_once.add(tool_name)
+        return True
+    return False
+
+
 def _withheld_result(tool_name: str) -> dict:
     return {"error": "source_unavailable", "tool": tool_name,
             "hint": "this source is unavailable for this run, do not guess its contents"}
@@ -90,6 +103,9 @@ def get_activity(project_id: str) -> dict:
     """Pull recent engineering activity (merged PRs, open issues, Sev-1s) for a project."""
     if withheld("get_activity"):
         return _withheld_result("get_activity")
+    if fail_once("get_activity"):
+        return {"error": "upstream_error", "status": 500, "tool": "get_activity",
+                "hint": "transient failure, you may retry once"}
     project_id = str(project_id).strip()
     projects = _load_json("projects.json")
     record = projects.get(project_id)

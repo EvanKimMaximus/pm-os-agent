@@ -1,0 +1,34 @@
+﻿
+================================================================
+CORTEX RUN, fixture: task-happy  (auto-queue cap 10 items, stale after 14 days, today 2026-10-23)
+================================================================
+Task: Weekly leadership status update + next-sprint stories
+Project: P-NORTH (Northstar)
+Requested by: your product lead
+
+Hi, can you put together this week's leadership status update for Northstar
+(P-NORTH)? Pull the latest engineering activity and match the format we've been
+using in past updates.
+
+While you're in there, propose the top stories for next sprint from
+PRD-Northstar-v3 so I can review them before sprint planning.
+
+Nothing goes out until I've looked at it.
+
+
+[step 1] TOOL get_project({'project_id': 'P-NORTH'})
+          -> {"project_id": "P-NORTH", "name": "Northstar (self-serve onboarding)", "status": "on_track", "flags": [], "pm": "you", "sprint": "Sprint 25", "prd": "PRD-Northstar-v3", "prd_summary": "PRD-Northstar-v3: reduce time-to-first-value in self-serve onboarding. In scope: guided activation checklist, step-
+
+[step 2] TOOL get_activity({'project_id': 'P-NORTH'})
+          -> {"project_id": "P-NORTH", "activity": [{"type": "pr_merged", "id": "#820", "title": "Day-2 milestone email", "date": "2026-10-18"}, {"type": "pr_merged", "id": "#823", "title": "Empty-state guidance copy (closes #818)", "date": "2026-10-19"}, {"type": "issue_open", "id": "#825", "title": "Contextual
+
+================================================================
+MAX ITERATIONS (2) reached without finishing. Escalating. Run cost ≈ $0.0013
+================================================================
+
+================================================================
+LAST DRAFT (held, NOT posted, escalated to a human)
+================================================================
+(Cortex stopped before it produced a draft, nothing to show.)
+
+Why it was held: max iterations (2) reached

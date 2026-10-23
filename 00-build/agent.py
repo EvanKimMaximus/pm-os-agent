@@ -62,9 +62,15 @@ BAD_DRAFT_TAMPER = (
     "(PR #999 closed the gap).\n")
 MAX_ITERATIONS = int(os.environ.get("CORTEX_MAX_ITERATIONS", "8"))
 MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
-COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
+COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.20"))
+DAILY_CAP_USD = float(os.environ.get("CORTEX_DAILY_CAP_USD", "5.00"))  # across all runs today
+TIMEOUT_S = float(os.environ.get("CORTEX_TIMEOUT_S", "120"))           # wall clock per run
 MAX_QUEUE_ITEMS = tools.max_queue_items()      # enforced in tools.propose_stories
 MAX_STALE_DAYS = tools.max_stale_days()        # enforced in tools.get_activity
+# Kill switch: create this file (e.g. `New-Item 00-build/CORTEX_KILL`) and every run
+# halts at its next step; delete it to resume. Checked outside the model.
+KILL_FILE = Path(__file__).parent / "CORTEX_KILL"
+SPEND_LEDGER = Path(__file__).parent / "run-output" / "spend-ledger.json"
 
 TOOL_SCHEMAS = [
     {"type": "function", "function": {
@@ -108,12 +114,37 @@ class Bounds:
     def __init__(self):
         self.cost = 0.0
         self.steps = 0
+        self.last_draft = ""
 
     def over_cap(self) -> bool:
         return self.cost >= COST_CAP_USD
 
     def out_of_steps(self) -> bool:
         return self.steps >= MAX_ITERATIONS
+
+
+def killed() -> bool:
+    return KILL_FILE.exists()
+
+
+def spent_today() -> float:
+    try:
+        ledger = json.loads(SPEND_LEDGER.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0.0
+    return float(ledger.get(tools.today().isoformat(), 0.0))
+
+
+def record_spend(cost: float) -> None:
+    """Add this run's spend to today's total, so the daily cap sees every run."""
+    try:
+        ledger = json.loads(SPEND_LEDGER.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        ledger = {}
+    day = tools.today().isoformat()
+    ledger[day] = round(float(ledger.get(day, 0.0)) + cost, 6)
+    SPEND_LEDGER.parent.mkdir(exist_ok=True)
+    SPEND_LEDGER.write_text(json.dumps(ledger, indent=2), encoding="utf-8")
 
 
 def build_tool_server(bounds: Bounds, source_log: list[str]):
@@ -125,6 +156,10 @@ def build_tool_server(bounds: Bounds, source_log: list[str]):
 
         @tool(fn, spec["description"], spec["parameters"])
         async def handler(args: dict) -> dict:
+            if killed():
+                return {"content": [{"type": "text", "text": json.dumps(
+                    {"error": "kill_switch", "action": "stop now and ESCALATE"})}],
+                    "is_error": True}
             if bounds.out_of_steps():
                 return {"content": [{"type": "text", "text": json.dumps(
                     {"error": "iteration_cap_reached", "action": "stop and ESCALATE"})}],
@@ -178,8 +213,7 @@ def emit_deliverable(which: str, draft: str, *, accepted: bool,
               f"(for your review, nothing was posted)")
 
 
-async def run(which: str = "happy") -> None:
-    bounds = Bounds()
+async def run(which: str, bounds: Bounds) -> None:
     task = tools.get_task(which)
     if "error" in task:
         print(task)
@@ -206,14 +240,18 @@ async def run(which: str = "happy") -> None:
 
     prompt = f"PM task brief:\n\n{task['body']}"
     revisions = 0
-    last_draft = ""
 
     async with ClaudeSDKClient(options=options) as client:
         while True:
+            if killed():
+                banner(f"KILL SWITCH, {KILL_FILE.name} exists. Halting now, nothing posted.")
+                emit_deliverable(which, bounds.last_draft, accepted=False,
+                                 reason="kill switch engaged", cost=bounds.cost)
+                return
             if bounds.over_cap():
                 reason = f"cost cap ${COST_CAP_USD} hit at ${bounds.cost:.4f}"
                 banner(f"BOUND TRIPPED, {reason}. Halting and escalating to a human.")
-                emit_deliverable(which, last_draft, accepted=False,
+                emit_deliverable(which, bounds.last_draft, accepted=False,
                                  reason=reason, cost=bounds.cost)
                 return
 
@@ -228,7 +266,7 @@ async def run(which: str = "happy") -> None:
             if result is None or result.subtype == "error_max_turns" or bounds.out_of_steps():
                 banner(f"MAX ITERATIONS ({MAX_ITERATIONS}) reached without finishing. "
                        f"Escalating. Run cost ≈ ${bounds.cost:.4f}")
-                emit_deliverable(which, last_draft, accepted=False,
+                emit_deliverable(which, bounds.last_draft, accepted=False,
                                  reason=f"max iterations ({MAX_ITERATIONS}) reached",
                                  cost=bounds.cost)
                 return
@@ -239,7 +277,7 @@ async def run(which: str = "happy") -> None:
                 detail = (result.result or "").strip().splitlines()[:1]
                 reason = f"agent run failed ({result.subtype}{': ' + detail[0] if detail else ''})"
                 banner(f"RUN ERROR, {reason}. Escalating.")
-                emit_deliverable(which, last_draft, accepted=False,
+                emit_deliverable(which, bounds.last_draft, accepted=False,
                                  reason=reason, cost=bounds.cost)
                 return
 
@@ -249,7 +287,7 @@ async def run(which: str = "happy") -> None:
                 proposed += BAD_DRAFT_TAMPER
                 print("\n[demo] CORTEX_DEMO_BAD_DRAFT=1: injected a firm ship date, a RAG "
                       "status, an invented metric and a fake PR ID into this first draft.")
-            last_draft = proposed
+            bounds.last_draft = proposed
             print(f"\n[step {bounds.steps}] PROPOSED OUTPUT:\n{proposed}")
 
             banner(f"CRITIC ({CRITIC_MODEL}), independent validation")
@@ -281,7 +319,7 @@ async def run(which: str = "happy") -> None:
                 reason = f"validator rejected {MAX_REVISIONS}x (revision cap)"
                 banner(f"REVISION CAP hit ({MAX_REVISIONS}). Escalating to a human "
                        f"instead of looping. Run cost ≈ ${bounds.cost:.4f}")
-                emit_deliverable(which, last_draft, accepted=False,
+                emit_deliverable(which, bounds.last_draft, accepted=False,
                                  reason=reason, cost=bounds.cost)
                 return
 
@@ -293,5 +331,27 @@ async def run(which: str = "happy") -> None:
                 prompt = f"The draft as submitted was:\n\n{proposed}\n\n{prompt}"
 
 
+async def main(which: str = "happy") -> None:
+    """The bounds that wrap a whole run: kill switch, daily spend cap, wall-clock
+    timeout. Every run's spend is recorded so the daily cap sees all of them."""
+    bounds = Bounds()
+    if killed():
+        banner(f"KILL SWITCH, {KILL_FILE.name} exists. Not starting.")
+        return
+    if spent_today() >= DAILY_CAP_USD:
+        banner(f"DAILY CAP, ${spent_today():.4f} already spent today "
+               f"(cap ${DAILY_CAP_USD}). Not starting, a human must raise the cap.")
+        return
+    try:
+        await asyncio.wait_for(run(which, bounds), timeout=TIMEOUT_S)
+    except asyncio.TimeoutError:
+        reason = f"timeout ({TIMEOUT_S:.0f}s) reached"
+        banner(f"BOUND TRIPPED, {reason}. Halting and escalating to a human.")
+        emit_deliverable(which, bounds.last_draft, accepted=False,
+                         reason=reason, cost=bounds.cost)
+    finally:
+        record_spend(bounds.cost)
+
+
 if __name__ == "__main__":
-    asyncio.run(run(sys.argv[1] if len(sys.argv) > 1 else "happy"))
+    asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "happy"))
